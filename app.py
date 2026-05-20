@@ -33,64 +33,22 @@ if st.session_state.logged_in:
     # Configuração da página
     st.set_page_config(page_title="Dashboard de Gestão Laboratorial", layout="wide")   
     
-    st.title("🧪 Diagnóstico de Conexão com Google Sheets")
-    
-    # ETAPA 1: Ler os dados do Secrets
-    st.subheader("Etapa 1: Lendo o Secrets do Streamlit")
-    try:
-        creds_dict = dict(st.secrets["gcp_service_account"])
-        st.success("✓ Secrets encontrado e convertido em dicionário!")
-        st.write(f"**Projeto localizado:** {creds_dict.get('project_id')}")
-        st.write(f"**E-mail da Conta de Serviço:** {creds_dict.get('client_email')}")
-    except Exception as e:
-        st.error(f"Falha na Etapa 1: Não foi possível ler o bloco [gcp_service_account] do Secrets.\nErro: {e}")
-        st.stop()
-    
-    # ETAPA 2: Validar a Chave Privada (Criptografia)
-    st.subheader("Etapa 2: Validando a Chave Privada (RSA)")
-    try:
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        
-        # Tratamento para garantir a formatação correta das quebras de linha
-        if "\\n" in creds_dict["private_key"]:
-            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-            
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        st.success("✓ Chave privada validada com sucesso pelo Google Auth!")
-    except Exception as e:
-        st.error(f"Falha na Etapa 2: A chave privada está mal formatada ou corrompida.\nErro: {e}")
-        st.stop()
-    
-    # ETAPA 3: Testar o acesso à Planilha
-    st.subheader("Etapa 3: Abrindo a Planilha de Dados")
-    # ⚠️ SUBSTITUA PELO NOME EXATO DA SUA PLANILHA GOOGLE
-    NOME_DA_PLANILHA = "Insira o Nome Exato da Sua Planilha Aqui" 
-    
-    try:
-        client = gspread.authorize(creds)
-        planilha = client.open(NOME_DA_PLANILHA)
-        aba = planilha.sheet1
-        dados = aba.get_all_records()
-        
-        st.success(f"✓ Conexão total estabelecida! Conseguimos ler {len(dados)} linhas da planilha '{NOME_DA_PLANILHA}'.")
-    except gspread.exceptions.SpreadsheetNotFound:
-        st.error(f"Falha na Etapa 3: Planilha '{NOME_DA_PLANILHA}' não foi encontrada. Você lembrou de compartilhar a planilha com o e-mail da conta de serviço?")
-    except Exception as e:
-        st.error(f"Falha na Etapa 3: Erro ao tentar conectar com a API do Sheets.\nErro: {e}")
     def get_gspread_client():
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         
-        # 1. Carrega o dicionário do Secrets
+        # 1. Carrega o dicionário dos segredos
         creds_dict = dict(st.secrets["gcp_service_account"])
         
-        # 2. Tratamento definitivo para quebras de linha do arquivo PEM
-        # Remove barras invertidas duplas criadas pelo interpretador TOML e normaliza as quebras
-        raw_key = creds_dict["private_key"]
-        fixed_key = raw_key.replace("\\n", "\n").replace("\n\n", "\n").strip()
+        # 2. Recupera o texto em Base64 e decodifica para a string PEM original
+        b64_key = creds_dict["private_key_base64"]
+        decoded_pem = base64.b64decode(b64_key).decode("utf-8")
         
-        creds_dict["private_key"] = fixed_key
-        
-        # 3. Autentica usando o dicionário corrigido na memória
+        # 3. Alimenta o dicionário com a chave descriptografada perfeita e remove a temporária
+        creds_dict["private_key"] = decoded_pem
+        if "private_key_base64" in creds_dict:
+            del creds_dict["private_key_base64"]
+            
+        # 4. Faz a autenticação na API do Google
         creds = Credentials.from_service_account_info(
             creds_dict,
             scopes=scopes
