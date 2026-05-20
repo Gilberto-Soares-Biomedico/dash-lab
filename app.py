@@ -38,10 +38,12 @@ if st.session_state.logged_in:
     def get_gspread_client():
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         
-        # 1. Transforma o bloco [gcp_service_account] do Secrets em um dicionário Python
+        # Carrega os dados do Secrets do Streamlit
         creds_dict = dict(st.secrets["gcp_service_account"])
         
-        # 2. Carrega as credenciais a partir do dicionário na memória (repare que muda para _info)
+        # Força a correção de quebras de linha que o TOML costuma desconfigurar
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+        
         creds = Credentials.from_service_account_info(
             creds_dict,
             scopes=scopes
