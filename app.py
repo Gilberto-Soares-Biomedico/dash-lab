@@ -34,31 +34,19 @@ if st.session_state.logged_in:
     st.set_page_config(page_title="Dashboard de Gestão Laboratorial", layout="wide")
 
     # 1. FUNÇÃO PRIVADA PARA AUTENTICAÇÃO (Sem cache de dados do Streamlit)
+    # CÓDIGO NOVO (Correto para o Streamlit Cloud)
     def get_gspread_client():
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         
-        # 1. Tenta autenticar usando o ambiente seguro da Nuvem (st.secrets)
-        try:
-            # Verifica se a chave existe e se não está vazia
-            if "gcp_service_account" in st.secrets and st.secrets["gcp_service_account"]:
-                credentials_info = dict(st.secrets["gcp_service_account"])
-                creds = Credentials.from_service_account_info(credentials_info, scopes=scopes)
-                return gspread.authorize(creds)
-            else:
-                # Se não existir no secrets, força o disparo de um erro para cair no bloco 'except'
-                raise ValueError("Chave gcp_service_account não encontrada no st.secrets.")
-                
-        # 2. Se der QUALQUER erro na nuvem (ausência, formato malformado, etc.), vai para o ELSE (Local)
-        except Exception:
-            # Fallback local seguro: lê o arquivo físico JSON na sua máquina
-            creds = Credentials.from_service_account_file(
-                "dashboard-laboratorio-cascavel-29e48bb952c5.json", 
-                scopes=scopes
-            )
-            return gspread.authorize(creds)
+        # 1. Transforma o bloco [gcp_service_account] do Secrets em um dicionário Python
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        
+        # 2. Carrega as credenciais a partir do dicionário na memória (repare que muda para _info)
+        creds = Credentials.from_service_account_info(
+            creds_dict,
+            scopes=scopes
+        )
+        return gspread.authorize(creds)
 
     # 2. FUNÇÃO PRINCIPAL DE CARREGAMENTO (Esta sim leva o @st.cache_data)
     @st.cache_data(ttl=600)  # O cache expira a cada 10 minutos para buscar novidades do Sheets
