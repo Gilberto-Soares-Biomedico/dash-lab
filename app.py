@@ -31,8 +31,52 @@ if st.session_state.logged_in:
     # ---------------------------------------------------------
 
     # Configuração da página
-    st.set_page_config(page_title="Dashboard de Gestão Laboratorial", layout="wide")
-      
+    st.set_page_config(page_title="Dashboard de Gestão Laboratorial", layout="wide")   
+    
+    st.title("🧪 Diagnóstico de Conexão com Google Sheets")
+    
+    # ETAPA 1: Ler os dados do Secrets
+    st.subheader("Etapa 1: Lendo o Secrets do Streamlit")
+    try:
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        st.success("✓ Secrets encontrado e convertido em dicionário!")
+        st.write(f"**Projeto localizado:** {creds_dict.get('project_id')}")
+        st.write(f"**E-mail da Conta de Serviço:** {creds_dict.get('client_email')}")
+    except Exception as e:
+        st.error(f"Falha na Etapa 1: Não foi possível ler o bloco [gcp_service_account] do Secrets.\nErro: {e}")
+        st.stop()
+    
+    # ETAPA 2: Validar a Chave Privada (Criptografia)
+    st.subheader("Etapa 2: Validando a Chave Privada (RSA)")
+    try:
+        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+        
+        # Tratamento para garantir a formatação correta das quebras de linha
+        if "\\n" in creds_dict["private_key"]:
+            creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
+            
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        st.success("✓ Chave privada validada com sucesso pelo Google Auth!")
+    except Exception as e:
+        st.error(f"Falha na Etapa 2: A chave privada está mal formatada ou corrompida.\nErro: {e}")
+        st.stop()
+    
+    # ETAPA 3: Testar o acesso à Planilha
+    st.subheader("Etapa 3: Abrindo a Planilha de Dados")
+    # ⚠️ SUBSTITUA PELO NOME EXATO DA SUA PLANILHA GOOGLE
+    NOME_DA_PLANILHA = "Insira o Nome Exato da Sua Planilha Aqui" 
+    
+    try:
+        client = gspread.authorize(creds)
+        planilha = client.open(NOME_DA_PLANILHA)
+        aba = planilha.sheet1
+        dados = aba.get_all_records()
+        
+        st.success(f"✓ Conexão total estabelecida! Conseguimos ler {len(dados)} linhas da planilha '{NOME_DA_PLANILHA}'.")
+    except gspread.exceptions.SpreadsheetNotFound:
+        st.error(f"Falha na Etapa 3: Planilha '{NOME_DA_PLANILHA}' não foi encontrada. Você lembrou de compartilhar a planilha com o e-mail da conta de serviço?")
+    except Exception as e:
+        st.error(f"Falha na Etapa 3: Erro ao tentar conectar com a API do Sheets.\nErro: {e}")
     def get_gspread_client():
         scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
         
