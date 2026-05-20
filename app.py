@@ -1,5 +1,4 @@
 import streamlit as st
-import base64
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -35,25 +34,16 @@ if st.session_state.logged_in:
     st.set_page_config(page_title="Dashboard de Gestão Laboratorial", layout="wide")   
     
     def get_gspread_client():
-        scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-        
-        # 1. Carrega o dicionário dos segredos
-        creds_dict = dict(st.secrets["gcp_service_account"])
-        
-        # 2. Recupera o texto em Base64 e decodifica para a string PEM original
-        b64_key = creds_dict["private_key_base64"]
-        decoded_pem = base64.b64decode(b64_key).decode("utf-8")
-        
-        # 3. Alimenta o dicionário com a chave descriptografada perfeita e remove a temporária
-        creds_dict["private_key"] = decoded_pem
-        if "private_key_base64" in creds_dict:
-            del creds_dict["private_key_base64"]
-            
-        # 4. Faz a autenticação na API do Google
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+    
         creds = Credentials.from_service_account_info(
-            creds_dict,
+            st.secrets["gcp_service_account"],
             scopes=scopes
         )
+    
         return gspread.authorize(creds)
 
     # 2. FUNÇÃO PRINCIPAL DE CARREGAMENTO (Esta sim leva o @st.cache_data)
@@ -63,7 +53,7 @@ if st.session_state.logged_in:
         gc = get_gspread_client()
         
         # Abre a planilha do Google Sheets
-        sheet = gc.open("Laboratorio Cascavel")
+        sheet = gc.open_by_key("1ABRFkZVcfskRaa_Yp13Ku9lzTmpggA6MJLdDperZbn0")
         
         # --- EXEMPLO DE LEITURA DAS ABAS ---
         # Captura os dados brutos de cada aba e converte para DataFrame do Pandas
