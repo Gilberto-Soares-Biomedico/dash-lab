@@ -6,6 +6,11 @@ from login import valida_senha
 import gspread
 from google.oauth2.service_account import Credentials
 
+# Configuração da página
+st.set_page_config(
+    page_title="Dashboard de Gestão Laboratorial",
+    layout="wide"
+)
 
 # 1. Inicializa as variáveis de estado
 if "logged_in" not in st.session_state:
@@ -29,10 +34,7 @@ if st.session_state.logged_in:
     # ---------------------------------------------------------
     # TODO O SEU CÓDIGO DO DASHBOARD ABAIXO (IDENTADO)
     # ---------------------------------------------------------
-
-    # Configuração da página
-    st.set_page_config(page_title="Dashboard de Gestão Laboratorial", layout="wide")   
-    
+       
     def get_gspread_client():
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
